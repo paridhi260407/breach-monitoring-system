@@ -1,9 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
+const fs = require('fs');
 const config = require('./config/env');
 const { isRedisConnected } = require('./config/redis');
 const schedulerService = require('./services/schedulerService');
+const seed = require('./utils/seed');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 // Import routes
@@ -17,8 +20,8 @@ const app = express();
 // 1. Security Middleware
 app.use(
   helmet({
-    contentSecurityPolicy: config.nodeEnv === 'production',
-    crossOriginEmbedderPolicy: config.nodeEnv === 'production',
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
   })
 );
 
@@ -65,16 +68,48 @@ app.use('/api/emails', emailRoutes);
 app.use('/api/breaches', breachRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 
-// 6. Error & Not Found Handlers
+// 6. Serve static client assets if client/dist exists (Fullstack Single-Service Deployment)
+const clientDistPath = path.join(__dirname, '../../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  console.log(`[Static Assets]: Serving frontend static files from ${clientDistPath}`);
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    const indexPath = path.join(clientDistPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    next();
+  });
+} else {
+  console.warn(`[Static Assets Warning]: Client build not found at ${clientDistPath}. Running in API-only mode.`);
+  // Root route handler for API-only backend deployments
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      status: 'online',
+      message: '⚡ BreachAlert Security API Server is running',
+      version: '1.0.0',
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth',
+        emails: '/api/emails',
+        breaches: '/api/breaches',
+        subscription: '/api/subscription',
+      },
+    });
+  });
+}
+
+// 7. Error & Not Found Handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// 7. Start Cron Job Scheduler
+// 8. Start Cron Job Scheduler
 schedulerService.init();
 
-// 8. Start HTTP Server
+// 9. Start HTTP Server and Run Database Auto-Seeding
 const PORT = config.port;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║ ⚡ BREACHALERT BACKEND SECURITY SERVICE STARTED              ║
@@ -83,6 +118,13 @@ app.listen(PORT, () => {
 ║ 🛡️ HIBP Mode:   ${(config.hibpApiKey === 'mock' ? 'Mock Fallback Mode' : 'Live HIBP API Key').padEnd(28, ' ')} ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
+
+  try {
+    await seed();
+  } catch (err) {
+    console.error('[Startup Seed Warning]:', err.message);
+  }
 });
 
 module.exports = app;
+

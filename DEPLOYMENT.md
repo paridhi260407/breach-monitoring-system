@@ -2,115 +2,81 @@
 
 This guide provides step-by-step instructions to deploy the full-stack **BreachAlert** application to [Render](https://render.com).
 
-Render allows hosting both the **Express backend Web Service** and the **React Vite Static Site** for free.
-
 ---
 
-## 🛠️ Option 1: Deployment via Render Blueprint (Recommended - 1-Click)
+## ⚡ Option 1: Unified Single Web Service (Recommended - Easiest & Best)
 
-The repository includes a `render.yaml` Blueprint file that automatically configures both services on Render.
+Deploy both frontend and backend together under **one single domain**. This eliminates CORS issues and environment variable setup for API URLs.
 
 ### Steps:
 1. **Push Changes to GitHub**:
-   Ensure your code and the `render.yaml` file are pushed to your GitHub repository:
    ```bash
    git add .
-   git commit -m "Add Render deployment configuration"
+   git commit -m "Fix deployment setup for Render"
    git push origin main
    ```
 
-2. **Connect GitHub to Render**:
+2. **Create Web Service on Render**:
    - Log in to your [Render Dashboard](https://dashboard.render.com).
-   - Click **New +** in the top right and select **Blueprint**.
+   - Click **New +** -> **Web Service**.
    - Connect your GitHub repository (`breach-monitoring-system`).
 
-3. **Configure Environment Variables**:
-   Render will parse `render.yaml` and create two services:
-   - **`breachalert-server`** (Node.js Web Service)
-   - **`breachalert-client`** (Static Site)
-
-   Provide the values when prompted:
-   - `CLIENT_URL`: Enter your expected frontend URL (e.g. `https://breachalert-client.onrender.com`).
-   - `VITE_API_BASE_URL`: Enter your expected backend API URL (e.g. `https://breachalert-server.onrender.com/api`).
-   - `JWT_SECRET`: Leave as auto-generated or enter a random secure string (32+ chars).
-
-4. **Deploy**:
-   - Click **Apply**. Render will automatically build and spin up both services.
-
----
-
-## ⚙️ Option 2: Manual Deployment on Render
-
-If you prefer to configure each service manually via the Render UI:
-
-### 1. Deploy Backend Web Service (`breachalert-server`)
-
-1. Click **New +** -> **Web Service**.
-2. Connect your GitHub repository.
-3. Configure the service:
-   - **Name**: `breachalert-server`
+3. **Configure Service Settings**:
+   - **Name**: `breach-monitoring-system`
    - **Region**: Oregon (or closest to you)
-   - **Root Directory**: `server`
+   - **Root Directory**: *(leave blank)*
    - **Environment**: `Node`
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm run build`
    - **Start Command**: `npm start`
    - **Plan**: `Free`
-4. Add Environment Variables:
+
+4. **Add Environment Variables**:
    | Key | Value | Notes |
    |---|---|---|
    | `NODE_ENV` | `production` | Production mode |
-   | `PORT` | `10000` | Port assigned by Render |
-   | `DATABASE_URL` | `file:./dev.db` | Embedded SQLite database file |
-   | `JWT_SECRET` | `your_secret_key_here` | 32+ character secret key |
-   | `CLIENT_URL` | `https://breachalert-client.onrender.com` | Deployed frontend URL |
-   | `HIBP_API_KEY` | `mock` | Or your actual HIBP API key |
-   | `EMAIL_FROM` | `no-reply@breachalert.io` | Sender email address |
-5. Click **Create Web Service**.
-6. Copy your backend URL (e.g. `https://breachalert-server.onrender.com`).
+   | `PORT` | `10000` | Render web service port |
+   | `DATABASE_URL` | `file:./server/dev.db` | Embedded SQLite database |
+   | `JWT_SECRET` | *(Generate random string)* | Secret key for auth |
+   | `HIBP_API_KEY` | `mock` | Or your live HaveIBeenPwned API key |
+   | `EMAIL_FROM` | `no-reply@breachalert.io` | Sender address |
+
+5. **Deploy**:
+   - Click **Create Web Service**.
 
 ---
 
-### 2. Deploy Frontend Static Site (`breachalert-client`)
+## 🛠️ Option 2: Separate Frontend & Backend Services (Current Setup)
 
-1. Click **New +** -> **Static Site**.
-2. Connect your GitHub repository.
-3. Configure the static site:
-   - **Name**: `breachalert-client`
-   - **Root Directory**: `client`
-   - **Build Command**: `npm install && npm run build`
-   - **Publish Directory**: `dist`
-4. Add Environment Variable:
-   | Key | Value |
-   |---|---|
-   | `VITE_API_BASE_URL` | `https://breachalert-server.onrender.com/api` |
-5. Add Redirects/Rewrites Rule (for React Router single page app):
-   - **Type**: `Rewrite`
-   - **Source**: `/*`
-   - **Destination**: `/index.html`
-6. Click **Create Static Site**.
+If you host the React client as a Static Site and Node backend as a separate Web Service:
 
----
+### Backend Service (`breach-monitoring-systemm`):
+- **Root Directory**: `server`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Root URL (`/`)**: Returns a JSON status message confirming the API is online.
 
-## 🔍 Verification & Health Check
+### Frontend Static Site (`breach-monitoring-systemm-1`):
+- **Root Directory**: `client`
+- **Build Command**: `npm install && npm run build`
+- **Publish Directory**: `dist`
+- **Environment Variable**: 
+  - `VITE_API_BASE_URL` = `https://breach-monitoring-systemm.onrender.com/api`
+- **Routing Rewrite**:
+  - The repository now includes `client/public/_redirects` which automatically handles SPA routing rules (`/* /index.html 200`).
 
-1. **Verify Backend Health**:
-   Visit `https://breachalert-server.onrender.com/api/health` in your browser. Expected response:
-   ```json
-   {
-     "status": "online",
-     "timestamp": "2026-07-22T...",
-     "redis": "in-memory-fallback",
-     "environment": "production",
-     "hibpMode": "mock"
-   }
-   ```
-
-2. **Verify Frontend Application**:
-   Visit `https://breachalert-client.onrender.com`. Test user registration, login, email monitoring, manual scans, and plan switching.
+> ⚠️ **CRITICAL STEP FOR STATIC SITE**: After adding or editing `VITE_API_BASE_URL` on Render Static Site, you **MUST** go to **Manual Deploy** -> **Clear build cache & deploy** so Vite bakes the backend URL into the client JavaScript bundle during build!
 
 ---
 
-## 📌 Important Notes for Render Free Tier
+## 🔧 Summary of Fixes Applied
 
-- **Cold Starts**: On Render's free tier, Web Services automatically spin down after 15 minutes of inactivity. The first request after spin-down may take 30-50 seconds while the instance boots up.
-- **SQLite Persistence**: By default, SQLite stores data in `server/dev.db`. On free tier web services without persistent disks, the filesystem resets on service restarts/redeploys. For permanent data storage across redeployments, attach a Render PostgreSQL database service and set `DATABASE_URL` accordingly in Prisma schema.
+1. **Fixed Client SPA `Not Found` (404) on `/login`**:
+   - Created `client/public/_redirects` (`/* /index.html 200`). Render automatically routes all client paths like `/login` or `/dashboard` to React Router.
+
+2. **Fixed Backend Root Route `Resource not found - /`**:
+   - Updated `server/src/server.js` to return a 200 OK status object with API status details when accessing the root URL directly.
+
+3. **Enhanced API URL Parsing**:
+   - Updated `client/src/services/api.js` to automatically trim slashes and append `/api` if needed, preventing URL structure mismatches.
+
+
