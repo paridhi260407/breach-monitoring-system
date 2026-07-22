@@ -69,8 +69,14 @@ app.use('/api/breaches', breachRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 
 // 6. Serve static client assets if client/dist exists (Fullstack Single-Service Deployment)
-const clientDistPath = path.join(__dirname, '../../client/dist');
-if (fs.existsSync(clientDistPath)) {
+const candidatePaths = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(process.cwd(), '../client/dist'),
+];
+const clientDistPath = candidatePaths.find((p) => fs.existsSync(p));
+
+if (clientDistPath) {
   console.log(`[Static Assets]: Serving frontend static files from ${clientDistPath}`);
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
@@ -82,7 +88,7 @@ if (fs.existsSync(clientDistPath)) {
     next();
   });
 } else {
-  console.warn(`[Static Assets Warning]: Client build not found at ${clientDistPath}. Running in API-only mode.`);
+  console.warn(`[Static Assets Warning]: Client build not found in candidates: ${candidatePaths.join(' | ')}. Running in API-only mode.`);
   // Root route handler for API-only backend deployments
   app.get('/', (req, res) => {
     res.status(200).json({
