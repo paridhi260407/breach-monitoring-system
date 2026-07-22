@@ -23,15 +23,20 @@ app.use(
 );
 
 // 2. CORS Configuration
-const allowedOrigins = [config.clientUrl, 'http://localhost:5173', 'http://localhost:3000'];
+const allowedOrigins = [config.clientUrl, 'http://localhost:5173', 'http://localhost:3000'].filter(Boolean);
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow requests with no origin (like mobile apps, curl, postman)
-      if (!origin || allowedOrigins.includes(origin) || config.nodeEnv === 'development') {
+      // Allow requests with no origin (e.g. mobile apps, curl, postman) or matching allowed origins / .onrender.com
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.onrender.com') ||
+        config.nodeEnv === 'development'
+      ) {
         return callback(null, true);
       }
-      return callback(new Error('Blocked by CORS policy'));
+      return callback(new Error(`Blocked by CORS policy: ${origin}`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

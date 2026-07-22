@@ -251,6 +251,15 @@ If `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SENDGRID_API_KEY` are not set or 
 
 ---
 
+## ☁️ Deployment on Render
+
+BreachAlert is ready for 1-click cloud deployment on [Render](https://render.com) using the included `render.yaml` Infrastructure-as-Code Blueprint spec.
+
+* **Quick Deploy**: Connect your repository to Render -> **New Blueprint** -> Select `breach-monitoring-system`.
+* **Full Instructions**: For detailed step-by-step instructions and environment variable settings, see [DEPLOYMENT.md](file:///c:/Users/rishabh/OneDrive/Desktop/Paridhi/DEPLOYMENT.md).
+
+---
+
 ## 📜 License
 
 This project is open-source under the MIT License.

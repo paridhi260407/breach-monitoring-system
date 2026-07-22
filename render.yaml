@@ -1,0 +1,44 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. BreachAlert Backend Web Service (Node.js + Express + Prisma)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: breachalert-server
+    env: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: HIBP_API_KEY
+        value: mock
+      - key: EMAIL_FROM
+        value: no-reply@breachalert.io
+      - key: CLIENT_URL
+        sync: false # Set to your deployed frontend URL in Render dashboard (e.g., https://breachalert-client.onrender.com)
+
+  # ---------------------------------------------------------------------------
+  # 2. BreachAlert Frontend Static Site (React + Vite)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: breachalert-client
+    env: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # Set to your deployed backend URL in Render dashboard (e.g., https://breachalert-server.onrender.com/api)
