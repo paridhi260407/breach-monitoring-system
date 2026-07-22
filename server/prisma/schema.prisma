@@ -1,0 +1,62 @@
+// Prisma schema for BreachAlert Database (SQLite for zero-dependency local execution)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  name            String
+  plan            String           @default("FREE")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  monitoredEmails MonitoredEmail[]
+
+  @@map("users")
+}
+
+model MonitoredEmail {
+  id                String         @id @default(uuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email             String
+  isVerified        Boolean        @default(false)
+  verificationToken String?        @unique
+  tokenExpiresAt    DateTime?
+  lastScannedAt     DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  breaches          BreachRecord[]
+
+  @@unique([userId, email])
+  @@map("monitored_emails")
+}
+
+model BreachRecord {
+  id               String         @id @default(uuid())
+  monitoredEmailId String
+  monitoredEmail   MonitoredEmail @relation(fields: [monitoredEmailId], references: [id], onDelete: Cascade)
+  breachName       String
+  title            String
+  domain           String?
+  breachDate       DateTime?
+  addedDate        DateTime?
+  description      String
+  dataClasses      String         @default("[]")
+  isVerified       Boolean        @default(true)
+  isFabricated     Boolean        @default(false)
+  isSensitive      Boolean        @default(false)
+  logoPath         String?
+  severity         String         @default("MEDIUM")
+  createdAt        DateTime       @default(now())
+
+  @@unique([monitoredEmailId, breachName])
+  @@map("breach_records")
+}

@@ -1,0 +1,35 @@
+# Environment variables
+.env
+*.env
+
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production builds
+client/dist/
+dist/
+build/
+coverage/
+
+
+# Database & SQLite local storage
+server/prisma/dev.db
+server/prisma/dev.db-journal
+*.db
+*.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.vscode/
+.idea/
