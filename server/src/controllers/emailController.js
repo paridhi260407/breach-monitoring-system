@@ -47,7 +47,7 @@ const addMonitoredEmail = async (req, res, next) => {
     });
 
     // Send verification email to user-entered recipient
-    const mailRes = await emailService.sendVerificationEmail(normalizedEmail, verificationToken);
+    const mailRes = await emailService.sendVerificationEmail(normalizedEmail, verificationToken, req);
 
     const responsePayload = {
       success: true,
@@ -165,7 +165,7 @@ const resendVerification = async (req, res, next) => {
       },
     });
 
-    const mailRes = await emailService.sendVerificationEmail(record.email, newToken);
+    const mailRes = await emailService.sendVerificationEmail(record.email, newToken, req);
 
     const responsePayload = {
       success: true,

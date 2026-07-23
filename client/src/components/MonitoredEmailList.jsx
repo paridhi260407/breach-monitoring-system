@@ -65,6 +65,24 @@ export default function MonitoredEmailList({ emails, onRefresh, onOpenAddModal }
     }
   };
 
+  const getDisplayVerifyUrl = (rawUrl) => {
+    if (!rawUrl) return '';
+    try {
+      if (rawUrl.startsWith('/')) {
+        return `${window.location.origin}${rawUrl}`;
+      }
+      const parsed = new URL(rawUrl);
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+        }
+      }
+      return rawUrl;
+    } catch (e) {
+      return rawUrl;
+    }
+  };
+
   return (
     <div className="glass-panel p-6 rounded-2xl mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
@@ -97,7 +115,7 @@ export default function MonitoredEmailList({ emails, onRefresh, onOpenAddModal }
             <span>{message.text}</span>
             {message.verifyUrl && (
               <a
-                href={message.verifyUrl}
+                href={getDisplayVerifyUrl(message.verifyUrl)}
                 target="_blank"
                 rel="noreferrer"
                 className="bg-emerald-500 text-slate-950 font-bold px-2.5 py-1 rounded-md hover:bg-emerald-400 text-[11px] underline"

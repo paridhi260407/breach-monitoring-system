@@ -72,7 +72,7 @@ const register = async (req, res, next) => {
     });
 
     // Send verification email to the user's registered email address
-    const mailRes = await emailService.sendVerificationEmail(normalizedEmail, verificationToken);
+    const mailRes = await emailService.sendVerificationEmail(normalizedEmail, verificationToken, req);
 
     const token = generateToken(newUser.id);
 

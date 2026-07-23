@@ -89,11 +89,47 @@ class EmailService {
     return { success: true, provider: 'Simulation', isDevSimulated: true };
   }
 
+  getClientUrl(reqOrUrl) {
+    if (typeof reqOrUrl === 'string' && reqOrUrl.trim()) {
+      return reqOrUrl.trim().replace(/\/$/, '');
+    }
+
+    const req = reqOrUrl && typeof reqOrUrl === 'object' ? reqOrUrl : null;
+
+    if (req) {
+      const origin = req.get ? req.get('origin') : req.headers?.origin;
+      if (origin && origin !== 'null') {
+        return origin.replace(/\/$/, '');
+      }
+
+      const referer = req.get ? req.get('referer') : req.headers?.referer;
+      if (referer) {
+        try {
+          const url = new URL(referer);
+          return url.origin.replace(/\/$/, '');
+        } catch (e) {}
+      }
+
+      const host = req.get ? req.get('host') : req.headers?.host;
+      if (host) {
+        const proto = req.headers?.['x-forwarded-proto'] || req.protocol || 'http';
+        return `${proto}://${host}`.replace(/\/$/, '');
+      }
+    }
+
+    if (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost')) {
+      return process.env.CLIENT_URL.replace(/\/$/, '');
+    }
+
+    return (config.clientUrl || 'http://localhost:5173').replace(/\/$/, '');
+  }
+
   /**
    * Send verification email containing a secure verification link
    */
-  async sendVerificationEmail(email, token) {
-    const verifyUrl = `${config.clientUrl}/verify?token=${token}`;
+  async sendVerificationEmail(email, token, reqOrUrl = null) {
+    const clientUrl = this.getClientUrl(reqOrUrl);
+    const verifyUrl = `${clientUrl}/verify?token=${token}`;
     const subject = '🔒 Verify Your Email Address - BreachAlert';
     const text = `Please verify your email address to enable BreachAlert monitoring: ${verifyUrl}`;
 
@@ -161,7 +197,8 @@ class EmailService {
   /**
    * Send alert notification when a new breach is detected
    */
-  async sendBreachAlertEmail(userEmail, monitoredEmail, newBreaches) {
+  async sendBreachAlertEmail(userEmail, monitoredEmail, newBreaches, reqOrUrl = null) {
+    const clientUrl = this.getClientUrl(reqOrUrl);
     const subject = `⚠️ URGENT: Security Breach Alert for ${monitoredEmail}`;
     
     const breachListHtml = newBreaches.map((b) => `
